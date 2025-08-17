@@ -1,11 +1,12 @@
 import pool from "../db/pool.js";
 
 export async function listar(req, res) {
-  const q = String(req.query.q || "").trim();
-  const limit = Math.min(parseInt(req.query.limit || "50", 10), 100);
-  const offset = Math.max(parseInt(req.query.offset || "0", 10), 0);
-
-  const params = [];
+    const qsrc = req.validated?.query ?? req.query; // usa lo validado
+    const q = String(qsrc.q || "").trim();
+    const limit = Math.min(parseInt(qsrc.limit ?? "50", 10), 100);
+    const offset = Math.max(parseInt(qsrc.offset ?? "0", 10), 0);
+  
+    const params = [];
   let sql = "select id, nombre, especie, raza, fecha_nacimiento, created_at from pacientes";
   if (q) { params.push(`%${q}%`); sql += ` where nombre ILIKE $${params.length}`; } // simple sin unaccent
   sql += " order by nombre asc limit $" + (params.push(limit)) + " offset $" + (params.push(offset));
@@ -19,7 +20,8 @@ export async function listar(req, res) {
 }
 
 export async function obtener(req, res) {
-  const { id } = req.params;
+    const params = req.validated?.params ?? req.params;
+    const { id } = params;
   const r = await pool.query(
     "select id, nombre, especie, raza, fecha_nacimiento, created_at from pacientes where id = $1",
     [id]
@@ -29,8 +31,9 @@ export async function obtener(req, res) {
 }
 
 export async function crear(req, res) {
-  const { nombre, especie = null, raza = null, fecha_nacimiento = null } = req.body;
-  const r = await pool.query(
+    const body = req.validated?.body ?? req.body;
+    const { nombre, especie = null, raza = null, fecha_nacimiento = null } = body;
+    const r = await pool.query(
     `insert into pacientes (id, nombre, especie, raza, fecha_nacimiento)
      values (gen_random_uuid(), $1, $2, $3, $4)
      returning id, nombre, especie, raza, fecha_nacimiento, created_at`,
@@ -40,8 +43,10 @@ export async function crear(req, res) {
 }
 
 export async function actualizar(req, res) {
-  const { id } = req.params;
-  const { nombre, especie, raza, fecha_nacimiento } = req.body;
+    const params = req.validated?.params ?? req.params;
+    const body = req.validated?.body ?? req.body;
+    const { id } = params;
+    const { nombre, especie, raza, fecha_nacimiento } = body;
 
   const r = await pool.query(
     `update pacientes set
@@ -64,7 +69,8 @@ export async function actualizar(req, res) {
 }
 
 export async function eliminar(req, res) {
-  const { id } = req.params;
+  const params = req.validated?.params ?? req.params;
+  const { id } = params;
   const r = await pool.query("delete from pacientes where id = $1", [id]);
   if (!r.rowCount) return res.status(404).json({ error: "paciente no encontrado" });
   res.status(204).send();
