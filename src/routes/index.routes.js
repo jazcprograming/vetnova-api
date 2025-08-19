@@ -1,6 +1,7 @@
 import { Router } from "express";
 import pool from "../db/pool.js";
 import pacientesRouter from "./pacientes.routes.js";
+import atencionesRouter from "./atenciones.routes.js";
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.get("/health", async (_req, res) => {
 
 // Módulos
 router.use("/api/pacientes", pacientesRouter);
+router.use("/api/atenciones", atencionesRouter); 
 
 export default router;
